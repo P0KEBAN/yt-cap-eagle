@@ -3,7 +3,13 @@
   "name": "yt-cap",
   "version": "0.1.0",
   "description": "Save the current YouTube video's thumbnail to Eagle.",
-  "permissions": ["activeTab", "scripting", "storage", "notifications"],
+  "permissions": [
+    "activeTab",
+    "scripting",
+    "storage",
+    "notifications",
+    "downloads"
+  ],
   "host_permissions": [
     "http://localhost/*",
     "http://127.0.0.1/*",
