@@ -110,6 +110,11 @@ async function saveThumbnail(request: SaveRequest): Promise<string> {
   const result = await parseEagleResponse(response);
 
   if (result.status !== "success") {
+    if (isKnownEagleDownloadWarning(result.message)) {
+      await notify("サムネイルをEagleに保存しました");
+      return thumbnailUrl;
+    }
+
     throw new Error(result.message || "Eagleへの保存に失敗しました");
   }
 
@@ -211,9 +216,6 @@ function buildAddFromUrlBody(
       `動画ID: ${metadata.videoId}`,
       `取得日時: ${metadata.capturedAt}`,
     ].join("\n"),
-    headers: {
-      referer: "https://www.youtube.com/",
-    },
   };
 
   if (defaultFolderId) {
@@ -256,4 +258,8 @@ function toUserFacingError(error: unknown): string {
   }
 
   return "サムネイル保存に失敗しました";
+}
+
+function isKnownEagleDownloadWarning(message: string | undefined): boolean {
+  return message === "Unable to download all specified images.";
 }
