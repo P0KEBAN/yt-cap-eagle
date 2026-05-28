@@ -1,0 +1,38 @@
+{
+  "manifest_version": 3,
+  "name": "yt-cap",
+  "version": "0.1.0",
+  "description": "Save the current YouTube video's thumbnail to Eagle.",
+  "permissions": ["activeTab", "scripting", "storage", "notifications"],
+  "host_permissions": [
+    "http://localhost:41595/*",
+    "https://img.youtube.com/*",
+    "https://i.ytimg.com/*"
+  ],
+  "background": {
+    "service_worker": "dist/background.js",
+    "type": "module"
+  },
+  "icons": {
+    "16": "icons/icon-16.png",
+    "48": "icons/icon-48.png",
+    "128": "icons/icon-128.png"
+  },
+  "action": {
+    "default_title": "Save YouTube thumbnail to Eagle",
+    "default_icon": {
+      "16": "icons/icon-16.png",
+      "48": "icons/icon-48.png",
+      "128": "icons/icon-128.png"
+    }
+  },
+  "commands": {
+    "save-thumbnail": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+Y",
+        "mac": "Command+Shift+Y"
+      },
+      "description": "Save YouTube thumbnail to Eagle"
+    }
+  }
+}
