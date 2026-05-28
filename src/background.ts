@@ -229,14 +229,11 @@ async function parseEagleResponse(
   response: Response,
 ): Promise<{ status: string; message?: string }> {
   try {
-    const result = (await response.json()) as {
-      status?: unknown;
-      message?: unknown;
-    };
+    const result = (await response.json()) as Record<string, unknown>;
 
     return {
       status: typeof result.status === "string" ? result.status : "success",
-      message: typeof result.message === "string" ? result.message : undefined,
+      message: extractEagleMessage(result),
     };
   } catch {
     return { status: "success" };
@@ -261,5 +258,47 @@ function toUserFacingError(error: unknown): string {
 }
 
 function isKnownEagleDownloadWarning(message: string | undefined): boolean {
-  return message === "Unable to download all specified images.";
+  return (
+    typeof message === "string" &&
+    message.toLowerCase().includes("unable to download all specified images")
+  );
+}
+
+function extractEagleMessage(
+  result: Record<string, unknown>,
+): string | undefined {
+  const directMessage = firstString(
+    result.message,
+    result.error,
+    result.data,
+    result.warning,
+  );
+
+  if (directMessage) {
+    return directMessage;
+  }
+
+  if (isRecord(result.data)) {
+    return firstString(
+      result.data.message,
+      result.data.error,
+      result.data.warning,
+    );
+  }
+
+  return undefined;
+}
+
+function firstString(...values: unknown[]): string | undefined {
+  for (const value of values) {
+    if (typeof value === "string" && value.trim()) {
+      return value.trim();
+    }
+  }
+
+  return undefined;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
