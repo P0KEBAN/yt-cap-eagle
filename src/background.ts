@@ -93,68 +93,28 @@ async function saveThumbnail(request: SaveRequest): Promise<string> {
 
   await assertEagleIsRunning(baseUrl);
 
+  const thumbnailUrl =
+    request.thumbnailUrl || (await resolveThumbnailUrl(request.videoId));
   const folderId =
     request.targetFolder === "default" ? settings.defaultFolderId : "";
-  const thumbnailUrls = buildThumbnailFallbackUrls(
-    request.videoId,
-    request.thumbnailUrl,
-  );
-  let lastError: unknown;
-
-  for (const thumbnailUrl of thumbnailUrls) {
-    let dataUrl: string;
-
-    try {
-      dataUrl = await fetchThumbnailDataUrl(thumbnailUrl);
-    } catch (error) {
-      lastError = error;
-      continue;
-    }
-
-    await addThumbnailFromUrl(
-      baseUrl,
-      request,
-      dataUrl,
-      thumbnailUrl,
-      folderId,
-    );
-    await notify("サムネイルをEagleに保存しました");
-    return thumbnailUrl;
-  }
-
-  throw lastError instanceof Error
-    ? lastError
-    : new Error("サムネイルを取得できませんでした");
-}
-
-async function addThumbnailFromUrl(
-  baseUrl: string,
-  request: SaveRequest,
-  eagleImageUrl: string,
-  sourceThumbnailUrl: string,
-  folderId: string,
-): Promise<void> {
-  const body = buildAddFromUrlBody(
-    request,
-    eagleImageUrl,
-    sourceThumbnailUrl,
-    folderId,
-  );
+  const body = buildAddFromUrlBody(request, thumbnailUrl, folderId);
   const response = await fetch(`${baseUrl}/api/item/addFromURL`, {
     method: "POST",
     body: JSON.stringify(body),
   });
-  const result = await parseEagleResponse(response);
 
   if (!response.ok) {
-    throw new Error(
-      result.message || `Eagle APIに接続できません (${response.status})`,
-    );
+    throw new Error(`Eagle APIに接続できません (${response.status})`);
   }
+
+  const result = await parseEagleResponse(response);
 
   if (result.status !== "success") {
     throw new Error(result.message || "Eagleへの保存に失敗しました");
   }
+
+  await notify("サムネイルをEagleに保存しました");
+  return thumbnailUrl;
 }
 
 async function loadSettings(): Promise<Settings> {
@@ -209,35 +169,51 @@ async function assertEagleIsRunning(baseUrl: string): Promise<void> {
   }
 }
 
-function buildThumbnailFallbackUrls(
-  videoId: string,
-  preferredUrl: string,
-): string[] {
-  return [
-    preferredUrl,
-    ...THUMBNAIL_QUALITIES.map(
-      (quality) => `https://img.youtube.com/vi/${videoId}/${quality}.jpg`,
-    ),
-  ].filter((url, index, urls) => Boolean(url) && urls.indexOf(url) === index);
+async function resolveThumbnailUrl(videoId: string): Promise<string> {
+  for (const quality of THUMBNAIL_QUALITIES) {
+    const url = `https://img.youtube.com/vi/${videoId}/${quality}.jpg`;
+
+    if (await imageExists(url)) {
+      return url;
+    }
+  }
+
+  throw new Error("サムネイルを取得できませんでした");
+}
+
+async function imageExists(url: string): Promise<boolean> {
+  try {
+    const headResponse = await fetch(url, { method: "HEAD" });
+
+    if (headResponse.ok) {
+      return true;
+    }
+
+    const getResponse = await fetch(url, { method: "GET" });
+    return getResponse.ok;
+  } catch {
+    return false;
+  }
 }
 
 function buildAddFromUrlBody(
   metadata: SaveRequest,
-  eagleImageUrl: string,
-  sourceThumbnailUrl: string,
+  thumbnailUrl: string,
   defaultFolderId: string,
 ): Record<string, unknown> {
   const body: Record<string, unknown> = {
-    url: eagleImageUrl,
+    url: thumbnailUrl,
     name: metadata.title || "YouTube thumbnail",
     website: metadata.url,
     annotation: [
       `チャンネル: ${metadata.channelName || ""}`,
       `投稿日: ${metadata.uploadDate || ""}`,
       `動画ID: ${metadata.videoId}`,
-      `サムネイルURL: ${sourceThumbnailUrl}`,
       `取得日時: ${metadata.capturedAt}`,
     ].join("\n"),
+    headers: {
+      referer: "https://www.youtube.com/",
+    },
   };
 
   if (defaultFolderId) {
@@ -280,34 +256,4 @@ function toUserFacingError(error: unknown): string {
   }
 
   return "サムネイル保存に失敗しました";
-}
-
-async function fetchThumbnailDataUrl(thumbnailUrl: string): Promise<string> {
-  const response = await fetch(thumbnailUrl);
-
-  if (!response.ok) {
-    throw new Error(`サムネイルを取得できませんでした (${response.status})`);
-  }
-
-  const contentType = response.headers.get("content-type") || "image/jpeg";
-
-  if (!contentType.startsWith("image/")) {
-    throw new Error("サムネイルを取得できませんでした");
-  }
-
-  const buffer = await response.arrayBuffer();
-  return `data:${contentType};base64,${arrayBufferToBase64(buffer)}`;
-}
-
-function arrayBufferToBase64(buffer: ArrayBuffer): string {
-  const bytes = new Uint8Array(buffer);
-  const chunkSize = 0x8000;
-  let binary = "";
-
-  for (let index = 0; index < bytes.length; index += chunkSize) {
-    const chunk = bytes.subarray(index, index + chunkSize);
-    binary += String.fromCharCode(...chunk);
-  }
-
-  return btoa(binary);
 }
