@@ -9,7 +9,7 @@ export type VideoMetadata = {
 
 export type SaveThumbnailMessage = {
   type: "YT_CAP_SAVE_THUMBNAIL";
-  payload: VideoMetadata;
+  payload: SaveRequest;
 };
 
 export type SaveThumbnailResponse =
@@ -26,4 +26,9 @@ export type Settings = {
   eagleHost: string;
   eaglePort: number;
   defaultFolderId: string;
+};
+
+export type SaveRequest = VideoMetadata & {
+  thumbnailUrl: string;
+  targetFolder: "default" | "inbox";
 };

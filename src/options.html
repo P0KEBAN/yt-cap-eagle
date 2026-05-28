@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>yt-cap 設定</title>
+    <link rel="stylesheet" href="./options.css" />
+  </head>
+  <body>
+    <main class="page">
+      <h1>yt-cap 設定</h1>
+
+      <form id="settings-form" class="settings-form">
+        <label>
+          <span>Eagle APIホスト</span>
+          <input id="eagle-host" name="eagleHost" autocomplete="off" />
+        </label>
+
+        <label>
+          <span>Eagle APIポート</span>
+          <input
+            id="eagle-port"
+            name="eaglePort"
+            inputmode="numeric"
+            autocomplete="off"
+          />
+        </label>
+
+        <label>
+          <span>デフォルト保存先フォルダID</span>
+          <input
+            id="default-folder-id"
+            name="defaultFolderId"
+            autocomplete="off"
+          />
+        </label>
+
+        <p class="hint">
+          フォルダIDはEagle内でフォルダを右クリックし、IDをコピーして貼り付けます。空欄の場合、Enter保存もインボックスに入ります。
+        </p>
+
+        <div class="actions">
+          <button type="submit">保存</button>
+          <button id="test-connection" type="button">接続テスト</button>
+        </div>
+
+        <p id="status" class="status" role="status"></p>
+      </form>
+    </main>
+
+    <script type="module" src="../dist/options.js"></script>
+  </body>
+</html>

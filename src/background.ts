@@ -1,8 +1,8 @@
 import type {
+  SaveRequest,
   SaveThumbnailMessage,
   SaveThumbnailResponse,
   Settings,
-  VideoMetadata,
 } from "./types";
 
 const DEFAULT_SETTINGS: Settings = {
@@ -11,7 +11,11 @@ const DEFAULT_SETTINGS: Settings = {
   defaultFolderId: "",
 };
 
-const THUMBNAIL_QUALITIES = ["maxresdefault", "sddefault", "hqdefault"] as const;
+const THUMBNAIL_QUALITIES = [
+  "maxresdefault",
+  "sddefault",
+  "hqdefault",
+] as const;
 
 chrome.action.onClicked.addListener((tab) => {
   void injectContentScript(tab);
@@ -55,58 +59,58 @@ async function runOnActiveTab(): Promise<void> {
   await injectContentScript(tab);
 }
 
-async function injectContentScript(tab: chrome.tabs.Tab): Promise<void> {
-  if (!tab.id || !isSupportedYouTubeUrl(tab.url)) {
+async function injectContentScript(
+  tab: chrome.tabs.Tab | undefined,
+): Promise<void> {
+  if (!tab?.id || !isInjectablePage(tab.url)) {
     await notify("このページは対応していません");
     return;
   }
 
-  await chrome.scripting.executeScript({
-    target: { tabId: tab.id },
-    files: ["dist/content.js"],
-  });
-}
-
-function isSupportedYouTubeUrl(rawUrl: string | undefined): boolean {
-  if (!rawUrl) {
-    return false;
-  }
-
   try {
-    const url = new URL(rawUrl);
-
-    if (url.hostname === "youtu.be") {
-      return Boolean(url.pathname.slice(1));
-    }
-
-    if (!["www.youtube.com", "youtube.com", "m.youtube.com"].includes(url.hostname)) {
-      return false;
-    }
-
-    return url.pathname === "/watch" || url.pathname.startsWith("/shorts/");
+    await chrome.scripting.insertCSS({
+      target: { tabId: tab.id },
+      files: ["src/overlay.css"],
+    });
+    await chrome.scripting.executeScript({
+      target: { tabId: tab.id },
+      files: ["dist/content.js"],
+    });
   } catch {
-    return false;
+    await notify("このページでは実行できません");
   }
 }
 
-async function saveThumbnail(metadata: VideoMetadata): Promise<string> {
+function isInjectablePage(rawUrl: string | undefined): boolean {
+  return (
+    !rawUrl || rawUrl.startsWith("http://") || rawUrl.startsWith("https://")
+  );
+}
+
+async function saveThumbnail(request: SaveRequest): Promise<string> {
   const settings = await loadSettings();
   const baseUrl = `http://${settings.eagleHost}:${settings.eaglePort}`;
 
   await assertEagleIsRunning(baseUrl);
 
-  const thumbnailUrl = await resolveThumbnailUrl(metadata.videoId);
-  const body = buildAddFromUrlBody(metadata, thumbnailUrl, settings.defaultFolderId);
+  const thumbnailUrl =
+    request.thumbnailUrl || (await resolveThumbnailUrl(request.videoId));
+  const folderId =
+    request.targetFolder === "default" ? settings.defaultFolderId : "";
+  const body = buildAddFromUrlBody(request, thumbnailUrl, folderId);
   const response = await fetch(`${baseUrl}/api/item/addFromURL`, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
     body: JSON.stringify(body),
   });
 
   if (!response.ok) {
     throw new Error(`Eagle APIに接続できません (${response.status})`);
+  }
+
+  const result = await parseEagleResponse(response);
+
+  if (result.status !== "success") {
+    throw new Error(result.message || "Eagleへの保存に失敗しました");
   }
 
   await notify("サムネイルをEagleに保存しました");
@@ -120,7 +124,9 @@ async function loadSettings(): Promise<Settings> {
     eagleHost: normalizeHost(saved.eagleHost),
     eaglePort: normalizePort(saved.eaglePort),
     defaultFolderId:
-      typeof saved.defaultFolderId === "string" ? saved.defaultFolderId.trim() : "",
+      typeof saved.defaultFolderId === "string"
+        ? saved.defaultFolderId.trim()
+        : "",
   };
 }
 
@@ -129,7 +135,10 @@ function normalizeHost(value: unknown): string {
     return DEFAULT_SETTINGS.eagleHost;
   }
 
-  return value.trim().replace(/^https?:\/\//, "").replace(/\/$/, "");
+  return value
+    .trim()
+    .replace(/^https?:\/\//, "")
+    .replace(/\/$/, "");
 }
 
 function normalizePort(value: unknown): number {
@@ -188,11 +197,11 @@ async function imageExists(url: string): Promise<boolean> {
 }
 
 function buildAddFromUrlBody(
-  metadata: VideoMetadata,
+  metadata: SaveRequest,
   thumbnailUrl: string,
   defaultFolderId: string,
-): Record<string, string> {
-  const body: Record<string, string> = {
+): Record<string, unknown> {
+  const body: Record<string, unknown> = {
     url: thumbnailUrl,
     name: metadata.title || "YouTube thumbnail",
     website: metadata.url,
@@ -202,6 +211,9 @@ function buildAddFromUrlBody(
       `動画ID: ${metadata.videoId}`,
       `取得日時: ${metadata.capturedAt}`,
     ].join("\n"),
+    headers: {
+      referer: "https://www.youtube.com/",
+    },
   };
 
   if (defaultFolderId) {
@@ -209,6 +221,24 @@ function buildAddFromUrlBody(
   }
 
   return body;
+}
+
+async function parseEagleResponse(
+  response: Response,
+): Promise<{ status: string; message?: string }> {
+  try {
+    const result = (await response.json()) as {
+      status?: unknown;
+      message?: unknown;
+    };
+
+    return {
+      status: typeof result.status === "string" ? result.status : "success",
+      message: typeof result.message === "string" ? result.message : undefined,
+    };
+  } catch {
+    return { status: "success" };
+  }
 }
 
 async function notify(message: string): Promise<void> {

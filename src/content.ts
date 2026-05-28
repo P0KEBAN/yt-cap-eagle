@@ -1,127 +1,306 @@
-import type {
-  SaveThumbnailMessage,
-  SaveThumbnailResponse,
-  VideoMetadata,
-} from "./types";
+(() => {
+  type VideoMetadata = {
+    videoId: string;
+    title: string;
+    url: string;
+    channelName: string;
+    uploadDate: string;
+    capturedAt: string;
+  };
 
-const YOUTUBE_WATCH_HOSTS = new Set(["www.youtube.com", "youtube.com", "m.youtube.com"]);
+  type SaveRequest = VideoMetadata & {
+    thumbnailUrl: string;
+    targetFolder: "default" | "inbox";
+  };
 
-void saveCurrentVideoThumbnail();
+  type SaveThumbnailMessage = {
+    type: "YT_CAP_SAVE_THUMBNAIL";
+    payload: SaveRequest;
+  };
 
-async function saveCurrentVideoThumbnail(): Promise<void> {
-  try {
-    const metadata = collectVideoMetadata(window.location.href);
-    const response = await sendSaveMessage(metadata);
+  type SaveThumbnailResponse =
+    | {
+        ok: true;
+        thumbnailUrl: string;
+      }
+    | {
+        ok: false;
+        error: string;
+      };
 
-    if (response.ok) {
-      window.alert("サムネイルをEagleに保存しました");
+  const YOUTUBE_WATCH_HOSTS = new Set([
+    "www.youtube.com",
+    "youtube.com",
+    "m.youtube.com",
+  ]);
+  const OVERLAY_ID = "yt-cap-overlay";
+  const THUMBNAIL_QUALITIES = [
+    "maxresdefault",
+    "sddefault",
+    "hqdefault",
+  ] as const;
+
+  void showThumbnailOverlay();
+
+  function showThumbnailOverlay(): void {
+    const existing = document.getElementById(OVERLAY_ID);
+
+    if (existing) {
+      existing.remove();
+      restoreScroll();
+    }
+
+    let metadata: VideoMetadata;
+
+    try {
+      metadata = collectVideoMetadata(window.location.href);
+    } catch (error) {
+      window.alert(
+        error instanceof Error ? error.message : "このページは対応していません",
+      );
       return;
     }
 
-    window.alert(response.error);
-  } catch (error) {
-    window.alert(error instanceof Error ? error.message : "サムネイル保存に失敗しました");
+    const state = {
+      qualityIndex: 0,
+      loadedThumbnailUrl: "",
+      saving: false,
+    };
+
+    const overlay = document.createElement("div");
+    overlay.id = OVERLAY_ID;
+    overlay.setAttribute("role", "dialog");
+    overlay.setAttribute("aria-modal", "true");
+
+    const panel = document.createElement("div");
+    panel.className = "yt-cap-panel";
+
+    const image = document.createElement("img");
+    image.className = "yt-cap-image";
+    image.alt = "YouTube thumbnail preview";
+
+    const status = document.createElement("div");
+    status.className = "yt-cap-status";
+    status.textContent = "読み込み中...";
+
+    panel.append(image, status);
+    overlay.append(panel);
+    document.documentElement.append(overlay);
+    document.documentElement.classList.add("yt-cap-scroll-lock");
+
+    const cleanup = (): void => {
+      document.removeEventListener("keydown", onKeyDown, true);
+      overlay.remove();
+      restoreScroll();
+    };
+
+    const setStatus = (
+      message: string,
+      variant: "normal" | "error" | "success" = "normal",
+    ): void => {
+      status.textContent = message;
+      status.dataset.variant = variant;
+    };
+
+    const save = async (targetFolder: "default" | "inbox"): Promise<void> => {
+      if (state.saving) {
+        return;
+      }
+
+      if (!state.loadedThumbnailUrl) {
+        setStatus("サムネイルを読み込み中です", "error");
+        return;
+      }
+
+      state.saving = true;
+      setStatus("保存中...");
+
+      const response = await sendSaveMessage({
+        ...metadata,
+        thumbnailUrl: state.loadedThumbnailUrl,
+        targetFolder,
+      });
+
+      state.saving = false;
+
+      if (!response.ok) {
+        setStatus(response.error, "error");
+        return;
+      }
+
+      setStatus("保存しました", "success");
+      window.setTimeout(cleanup, 700);
+    };
+
+    const tryNextThumbnail = (): void => {
+      state.qualityIndex += 1;
+
+      if (state.qualityIndex >= THUMBNAIL_QUALITIES.length) {
+        state.loadedThumbnailUrl = "";
+        setStatus("サムネイルを取得できませんでした", "error");
+        return;
+      }
+
+      image.src = buildThumbnailUrl(
+        metadata.videoId,
+        THUMBNAIL_QUALITIES[state.qualityIndex],
+      );
+    };
+
+    const onKeyDown = (event: KeyboardEvent): void => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        cleanup();
+        return;
+      }
+
+      if (event.key !== "Enter") {
+        return;
+      }
+
+      event.preventDefault();
+      void save(event.metaKey ? "inbox" : "default");
+    };
+
+    overlay.addEventListener("click", (event) => {
+      if (event.target === overlay) {
+        cleanup();
+      }
+    });
+
+    image.addEventListener("load", () => {
+      state.loadedThumbnailUrl = image.currentSrc || image.src;
+      setStatus("Enterで保存 / Cmd+Enterでインボックス");
+    });
+    image.addEventListener("error", tryNextThumbnail);
+    document.addEventListener("keydown", onKeyDown, true);
+
+    image.src = buildThumbnailUrl(
+      metadata.videoId,
+      THUMBNAIL_QUALITIES[state.qualityIndex],
+    );
   }
-}
 
-function collectVideoMetadata(rawUrl: string): VideoMetadata {
-  const videoId = extractVideoId(rawUrl);
-
-  if (!videoId) {
-    throw new Error("このページは対応していません");
+  function restoreScroll(): void {
+    document.documentElement.classList.remove("yt-cap-scroll-lock");
   }
 
-  return {
-    videoId,
-    title: extractTitle(),
-    url: normalizeVideoUrl(videoId),
-    channelName: extractChannelName(),
-    uploadDate: extractUploadDate(),
-    capturedAt: new Date().toISOString(),
-  };
-}
+  function collectVideoMetadata(rawUrl: string): VideoMetadata {
+    const videoId = extractVideoId(rawUrl);
 
-function extractVideoId(rawUrl: string): string | null {
-  const url = new URL(rawUrl);
+    if (!videoId) {
+      throw new Error("このページは対応していません");
+    }
 
-  if (YOUTUBE_WATCH_HOSTS.has(url.hostname) && url.pathname === "/watch") {
-    return normalizeVideoId(url.searchParams.get("v"));
+    return {
+      videoId,
+      title: extractTitle(),
+      url: normalizeVideoUrl(videoId),
+      channelName: extractChannelName(),
+      uploadDate: extractUploadDate(),
+      capturedAt: new Date().toISOString(),
+    };
   }
 
-  if (YOUTUBE_WATCH_HOSTS.has(url.hostname) && url.pathname.startsWith("/shorts/")) {
-    return normalizeVideoId(url.pathname.split("/")[2]);
-  }
+  function extractVideoId(rawUrl: string): string | null {
+    const url = new URL(rawUrl);
 
-  if (url.hostname === "youtu.be") {
-    return normalizeVideoId(url.pathname.slice(1).split("/")[0]);
-  }
+    if (YOUTUBE_WATCH_HOSTS.has(url.hostname) && url.pathname === "/watch") {
+      return normalizeVideoId(url.searchParams.get("v"));
+    }
 
-  return null;
-}
+    if (
+      YOUTUBE_WATCH_HOSTS.has(url.hostname) &&
+      url.pathname.startsWith("/shorts/")
+    ) {
+      return normalizeVideoId(url.pathname.split("/")[2]);
+    }
 
-function normalizeVideoId(candidate: string | null | undefined): string | null {
-  if (!candidate) {
+    if (url.hostname === "youtu.be") {
+      return normalizeVideoId(url.pathname.slice(1).split("/")[0]);
+    }
+
     return null;
   }
 
-  const trimmed = candidate.trim();
-  return /^[a-zA-Z0-9_-]{11}$/.test(trimmed) ? trimmed : null;
-}
-
-function normalizeVideoUrl(videoId: string): string {
-  return `https://www.youtube.com/watch?v=${videoId}`;
-}
-
-function extractTitle(): string {
-  const heading =
-    document.querySelector<HTMLHeadingElement>("h1.ytd-watch-metadata") ??
-    document.querySelector<HTMLHeadingElement>("h1.title");
-  const headingText = heading?.textContent?.trim();
-
-  if (headingText) {
-    return headingText;
-  }
-
-  return document.title.replace(/\s*-\s*YouTube\s*$/i, "").trim() || "YouTube thumbnail";
-}
-
-function extractChannelName(): string {
-  const selectors = [
-    "ytd-watch-metadata ytd-channel-name a",
-    "#owner #channel-name a",
-    "ytd-video-owner-renderer #channel-name a",
-  ];
-
-  return findFirstText(selectors);
-}
-
-function extractUploadDate(): string {
-  const selectors = [
-    "ytd-watch-info-text #info-container yt-formatted-string",
-    "#info-strings yt-formatted-string",
-    "ytd-watch-metadata #info-strings yt-formatted-string",
-  ];
-
-  return findFirstText(selectors);
-}
-
-function findFirstText(selectors: string[]): string {
-  for (const selector of selectors) {
-    const text = document.querySelector(selector)?.textContent?.trim();
-
-    if (text) {
-      return text;
+  function normalizeVideoId(
+    candidate: string | null | undefined,
+  ): string | null {
+    if (!candidate) {
+      return null;
     }
+
+    const trimmed = candidate.trim();
+    return /^[a-zA-Z0-9_-]{11}$/.test(trimmed) ? trimmed : null;
   }
 
-  return "";
-}
+  function normalizeVideoUrl(videoId: string): string {
+    return `https://www.youtube.com/watch?v=${videoId}`;
+  }
 
-function sendSaveMessage(metadata: VideoMetadata): Promise<SaveThumbnailResponse> {
-  const message: SaveThumbnailMessage = {
-    type: "YT_CAP_SAVE_THUMBNAIL",
-    payload: metadata,
-  };
+  function buildThumbnailUrl(
+    videoId: string,
+    quality: (typeof THUMBNAIL_QUALITIES)[number],
+  ): string {
+    return `https://img.youtube.com/vi/${videoId}/${quality}.jpg`;
+  }
 
-  return chrome.runtime.sendMessage(message);
-}
+  function extractTitle(): string {
+    const heading =
+      document.querySelector<HTMLHeadingElement>("h1.ytd-watch-metadata") ??
+      document.querySelector<HTMLHeadingElement>("h1.title");
+    const headingText = heading?.textContent?.trim();
+
+    if (headingText) {
+      return headingText;
+    }
+
+    return (
+      document.title.replace(/\s*-\s*YouTube\s*$/i, "").trim() ||
+      "YouTube thumbnail"
+    );
+  }
+
+  function extractChannelName(): string {
+    const selectors = [
+      "ytd-watch-metadata ytd-channel-name a",
+      "#owner #channel-name a",
+      "ytd-video-owner-renderer #channel-name a",
+    ];
+
+    return findFirstText(selectors);
+  }
+
+  function extractUploadDate(): string {
+    const selectors = [
+      "ytd-watch-info-text #info-container yt-formatted-string",
+      "#info-strings yt-formatted-string",
+      "ytd-watch-metadata #info-strings yt-formatted-string",
+    ];
+
+    return findFirstText(selectors);
+  }
+
+  function findFirstText(selectors: string[]): string {
+    for (const selector of selectors) {
+      const text = document.querySelector(selector)?.textContent?.trim();
+
+      if (text) {
+        return text;
+      }
+    }
+
+    return "";
+  }
+
+  function sendSaveMessage(
+    payload: SaveRequest,
+  ): Promise<SaveThumbnailResponse> {
+    const message: SaveThumbnailMessage = {
+      type: "YT_CAP_SAVE_THUMBNAIL",
+      payload,
+    };
+
+    return chrome.runtime.sendMessage(message);
+  }
+})();
