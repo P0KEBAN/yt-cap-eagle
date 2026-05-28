@@ -103,32 +103,23 @@ async function saveThumbnail(request: SaveRequest): Promise<string> {
 
   for (const thumbnailUrl of thumbnailUrls) {
     let dataUrl: string;
-    let download: TemporaryDownload | null = null;
 
     try {
       dataUrl = await fetchThumbnailDataUrl(thumbnailUrl);
-      download = await downloadTemporaryThumbnail(
-        dataUrl,
-        request.videoId,
-        getImageExtension(dataUrl),
-      );
-      await addThumbnailFromPath(
-        baseUrl,
-        request,
-        download.filename,
-        thumbnailUrl,
-        folderId,
-      );
-      await notify("サムネイルをEagleに保存しました");
-      return thumbnailUrl;
     } catch (error) {
       lastError = error;
       continue;
-    } finally {
-      if (download) {
-        await removeTemporaryDownload(download.id);
-      }
     }
+
+    await addThumbnailFromUrl(
+      baseUrl,
+      request,
+      dataUrl,
+      thumbnailUrl,
+      folderId,
+    );
+    await notify("サムネイルをEagleに保存しました");
+    return thumbnailUrl;
   }
 
   throw lastError instanceof Error
@@ -136,20 +127,20 @@ async function saveThumbnail(request: SaveRequest): Promise<string> {
     : new Error("サムネイルを取得できませんでした");
 }
 
-async function addThumbnailFromPath(
+async function addThumbnailFromUrl(
   baseUrl: string,
   request: SaveRequest,
-  filePath: string,
+  eagleImageUrl: string,
   sourceThumbnailUrl: string,
   folderId: string,
 ): Promise<void> {
   const body = buildAddFromUrlBody(
     request,
-    filePath,
+    eagleImageUrl,
     sourceThumbnailUrl,
     folderId,
   );
-  const response = await fetch(`${baseUrl}/api/item/addFromPath`, {
+  const response = await fetch(`${baseUrl}/api/item/addFromURL`, {
     method: "POST",
     body: JSON.stringify(body),
   });
@@ -232,12 +223,12 @@ function buildThumbnailFallbackUrls(
 
 function buildAddFromUrlBody(
   metadata: SaveRequest,
-  filePath: string,
+  eagleImageUrl: string,
   sourceThumbnailUrl: string,
   defaultFolderId: string,
 ): Record<string, unknown> {
   const body: Record<string, unknown> = {
-    path: filePath,
+    url: eagleImageUrl,
     name: metadata.title || "YouTube thumbnail",
     website: metadata.url,
     annotation: [
@@ -319,106 +310,4 @@ function arrayBufferToBase64(buffer: ArrayBuffer): string {
   }
 
   return btoa(binary);
-}
-
-type TemporaryDownload = {
-  id: number;
-  filename: string;
-};
-
-async function downloadTemporaryThumbnail(
-  dataUrl: string,
-  videoId: string,
-  extension: string,
-): Promise<TemporaryDownload> {
-  const id = await chrome.downloads.download({
-    url: dataUrl,
-    filename: `yt-cap-temp/${videoId}-${Date.now()}.${extension}`,
-    conflictAction: "uniquify",
-    saveAs: false,
-  });
-  const filename = await waitForDownloadComplete(id);
-
-  return { id, filename };
-}
-
-function waitForDownloadComplete(downloadId: number): Promise<string> {
-  return new Promise((resolve, reject) => {
-    let timeoutId: number | undefined;
-
-    const cleanup = (): void => {
-      chrome.downloads.onChanged.removeListener(handleChanged);
-
-      if (timeoutId !== undefined) {
-        clearTimeout(timeoutId);
-      }
-    };
-
-    const handleChanged = (delta: chrome.downloads.DownloadDelta): void => {
-      if (delta.id !== downloadId || !delta.state?.current) {
-        return;
-      }
-
-      if (delta.state.current === "complete") {
-        cleanup();
-        void chrome.downloads.search({ id: downloadId }).then(([item]) => {
-          if (item?.filename) {
-            resolve(item.filename);
-            return;
-          }
-
-          reject(new Error("一時ファイルの保存先を取得できませんでした"));
-        });
-        return;
-      }
-
-      if (delta.state.current === "interrupted") {
-        cleanup();
-        reject(new Error("サムネイルの一時保存に失敗しました"));
-      }
-    };
-
-    chrome.downloads.onChanged.addListener(handleChanged);
-    timeoutId = globalThis.setTimeout(() => {
-      cleanup();
-      reject(new Error("サムネイルの一時保存がタイムアウトしました"));
-    }, 15000);
-
-    void chrome.downloads.search({ id: downloadId }).then(([item]) => {
-      if (item?.state === "complete" && item.filename) {
-        cleanup();
-        resolve(item.filename);
-        return;
-      }
-
-      if (item?.state === "interrupted") {
-        cleanup();
-        reject(new Error("サムネイルの一時保存に失敗しました"));
-      }
-    });
-  });
-}
-
-async function removeTemporaryDownload(downloadId: number): Promise<void> {
-  try {
-    await chrome.downloads.removeFile(downloadId);
-    await chrome.downloads.erase({ id: downloadId });
-  } catch {
-    await chrome.downloads.erase({ id: downloadId });
-  }
-}
-
-function getImageExtension(dataUrl: string): string {
-  const match = /^data:image\/([a-z0-9.+-]+);base64,/i.exec(dataUrl);
-  const type = match?.[1]?.toLowerCase();
-
-  if (type === "jpeg" || type === "jpg") {
-    return "jpg";
-  }
-
-  if (type === "png" || type === "webp" || type === "gif") {
-    return type;
-  }
-
-  return "jpg";
 }
