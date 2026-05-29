@@ -110,11 +110,6 @@ async function saveThumbnail(request: SaveRequest): Promise<string> {
   const result = await parseEagleResponse(response);
 
   if (result.status !== "success") {
-    if (isKnownEagleDownloadWarning(result.message)) {
-      await notify("サムネイルをEagleに保存しました");
-      return thumbnailUrl;
-    }
-
     throw new Error(result.message || "Eagleへの保存に失敗しました");
   }
 
@@ -241,12 +236,19 @@ async function parseEagleResponse(
 }
 
 async function notify(message: string): Promise<void> {
-  await chrome.notifications.create({
-    type: "basic",
-    iconUrl: "icons/icon-128.png",
-    title: "yt-cap",
-    message,
-  });
+  // 通知の失敗（アイコン読み込み不可・OS側で通知無効など）は保存成否に影響させない。
+  // MV3のService Workerでは相対パスのiconUrlが解決できず例外になることがあるため、
+  // chrome.runtime.getURL で絶対URLに解決したうえで、例外は握りつぶす。
+  try {
+    await chrome.notifications.create({
+      type: "basic",
+      iconUrl: chrome.runtime.getURL("icons/icon-128.png"),
+      title: "yt-cap",
+      message,
+    });
+  } catch (error) {
+    console.warn("yt-cap: 通知の表示に失敗しました", error);
+  }
 }
 
 function toUserFacingError(error: unknown): string {
@@ -255,13 +257,6 @@ function toUserFacingError(error: unknown): string {
   }
 
   return "サムネイル保存に失敗しました";
-}
-
-function isKnownEagleDownloadWarning(message: string | undefined): boolean {
-  return (
-    typeof message === "string" &&
-    message.toLowerCase().includes("unable to download all specified images")
-  );
 }
 
 function extractEagleMessage(
