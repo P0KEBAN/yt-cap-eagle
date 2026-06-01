@@ -40,6 +40,7 @@
       thumbnailLoading: "Thumbnail is still loading",
       saving: "Saving...",
       saved: "Saved",
+      saveFailed: "Failed to save the thumbnail",
       saveHint: "Enter to save / Cmd+Enter for inbox",
       thumbnailFailed: "Could not fetch the thumbnail",
     },
@@ -49,6 +50,7 @@
       thumbnailLoading: "サムネイルを読み込み中です",
       saving: "保存中...",
       saved: "保存しました",
+      saveFailed: "サムネイル保存に失敗しました",
       saveHint: "Enterで保存 / Cmd+Enterでインボックス",
       thumbnailFailed: "サムネイルを取得できませんでした",
     },
@@ -65,6 +67,8 @@
     "sddefault",
     "hqdefault",
   ] as const;
+  const PLACEHOLDER_THUMBNAIL_MAX_WIDTH = 160;
+  const PLACEHOLDER_THUMBNAIL_MAX_HEIGHT = 120;
 
   void (async () => {
     const locale = await resolveContentLocale();
@@ -166,28 +170,32 @@
       state.saving = true;
       setStatus(m.saving);
 
-      const response = await sendSaveMessage({
-        ...metadata,
-        thumbnailUrl: state.loadedThumbnailUrl,
-        targetFolder,
-      });
+      try {
+        const response = await sendSaveMessage({
+          ...metadata,
+          thumbnailUrl: state.loadedThumbnailUrl,
+          targetFolder,
+        });
 
-      state.saving = false;
+        if (!response.ok) {
+          setStatus(response.error, "error");
+          return;
+        }
 
-      if (!response.ok) {
-        setStatus(response.error, "error");
-        return;
+        setStatus(m.saved, "success");
+        window.setTimeout(cleanup, 700);
+      } catch {
+        setStatus(m.saveFailed, "error");
+      } finally {
+        state.saving = false;
       }
-
-      setStatus(m.saved, "success");
-      window.setTimeout(cleanup, 700);
     };
 
     const tryNextThumbnail = (): void => {
+      state.loadedThumbnailUrl = "";
       state.qualityIndex += 1;
 
       if (state.qualityIndex >= THUMBNAIL_QUALITIES.length) {
-        state.loadedThumbnailUrl = "";
         setStatus(m.thumbnailFailed, "error");
         return;
       }
@@ -220,6 +228,11 @@
     });
 
     image.addEventListener("load", () => {
+      if (isPlaceholderThumbnail(image) && hasNextThumbnail(state.qualityIndex)) {
+        tryNextThumbnail();
+        return;
+      }
+
       state.loadedThumbnailUrl = image.currentSrc || image.src;
       setStatus(m.saveHint);
     });
@@ -294,6 +307,17 @@
     quality: (typeof THUMBNAIL_QUALITIES)[number],
   ): string {
     return `https://img.youtube.com/vi/${videoId}/${quality}.jpg`;
+  }
+
+  function hasNextThumbnail(qualityIndex: number): boolean {
+    return qualityIndex < THUMBNAIL_QUALITIES.length - 1;
+  }
+
+  function isPlaceholderThumbnail(image: HTMLImageElement): boolean {
+    return (
+      image.naturalWidth <= PLACEHOLDER_THUMBNAIL_MAX_WIDTH &&
+      image.naturalHeight <= PLACEHOLDER_THUMBNAIL_MAX_HEIGHT
+    );
   }
 
   function extractTitle(): string {

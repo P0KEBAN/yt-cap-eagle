@@ -12,6 +12,7 @@ const DEFAULT_SETTINGS: Settings = {
   defaultFolderId: "",
   language: "auto",
 };
+const ALLOWED_EAGLE_HOSTS = new Set(["localhost", "127.0.0.1"]);
 
 const form = requireElement<HTMLFormElement>("#settings-form");
 const hostInput = requireElement<HTMLInputElement>("#eagle-host");
@@ -79,10 +80,7 @@ async function loadSettings(): Promise<Settings> {
   const saved = await chrome.storage.sync.get(DEFAULT_SETTINGS);
 
   return {
-    eagleHost:
-      typeof saved.eagleHost === "string"
-        ? saved.eagleHost
-        : DEFAULT_SETTINGS.eagleHost,
+    eagleHost: normalizeHost(saved.eagleHost),
     eaglePort: normalizePort(saved.eaglePort),
     defaultFolderId:
       typeof saved.defaultFolderId === "string"
@@ -127,10 +125,18 @@ function readFormSettings(): Settings {
   };
 }
 
-function normalizeHost(value: string): string {
-  return (value.trim() || DEFAULT_SETTINGS.eagleHost)
+function normalizeHost(value: unknown): string {
+  if (typeof value !== "string" || !value.trim()) {
+    return DEFAULT_SETTINGS.eagleHost;
+  }
+
+  const host = value
+    .trim()
     .replace(/^https?:\/\//, "")
-    .replace(/\/$/, "");
+    .replace(/\/.*$/, "")
+    .replace(/:\d+$/, "");
+
+  return ALLOWED_EAGLE_HOSTS.has(host) ? host : DEFAULT_SETTINGS.eagleHost;
 }
 
 function normalizePort(value: unknown): number {

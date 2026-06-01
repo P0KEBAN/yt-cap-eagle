@@ -24,6 +24,14 @@ const THUMBNAIL_QUALITIES = [
   "sddefault",
   "hqdefault",
 ] as const;
+const ALLOWED_EAGLE_HOSTS = new Set(["localhost", "127.0.0.1"]);
+const KNOWN_EAGLE_DOWNLOAD_WARNING = "Unable to download all specified images.";
+
+type ParsedEagleResponse = {
+  status?: string;
+  message?: string;
+  hasSavedItemEvidence: boolean;
+};
 
 chrome.action.onClicked.addListener((tab) => {
   void injectContentScript(tab);
@@ -121,6 +129,9 @@ async function saveThumbnail(
   const body = buildAddFromUrlBody(request, thumbnailUrl, folderId, m);
   const response = await fetch(`${baseUrl}/api/item/addFromURL`, {
     method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
     body: JSON.stringify(body),
   });
 
@@ -130,7 +141,7 @@ async function saveThumbnail(
 
   const result = await parseEagleResponse(response);
 
-  if (result.status !== "success") {
+  if (!isSuccessfulEagleSave(result)) {
     throw new Error(result.message || m.saveToEagleFailed);
   }
 
@@ -163,10 +174,13 @@ function normalizeHost(value: unknown): string {
     return DEFAULT_SETTINGS.eagleHost;
   }
 
-  return value
+  const host = value
     .trim()
     .replace(/^https?:\/\//, "")
-    .replace(/\/$/, "");
+    .replace(/\/.*$/, "")
+    .replace(/:\d+$/, "");
+
+  return ALLOWED_EAGLE_HOSTS.has(host) ? host : DEFAULT_SETTINGS.eagleHost;
 }
 
 function normalizePort(value: unknown): number {
@@ -257,17 +271,59 @@ function buildAddFromUrlBody(
 
 async function parseEagleResponse(
   response: Response,
-): Promise<{ status: string; message?: string }> {
+): Promise<ParsedEagleResponse> {
   try {
     const result = (await response.json()) as Record<string, unknown>;
 
+    if (!isRecord(result)) {
+      return {
+        hasSavedItemEvidence: false,
+      };
+    }
+
     return {
-      status: typeof result.status === "string" ? result.status : "success",
+      status: typeof result.status === "string" ? result.status : undefined,
       message: extractEagleMessage(result),
+      hasSavedItemEvidence: hasSavedItemEvidence(result.data),
     };
   } catch {
-    return { status: "success" };
+    return {
+      hasSavedItemEvidence: false,
+    };
   }
+}
+
+function isSuccessfulEagleSave(result: ParsedEagleResponse): boolean {
+  if (result.status === "success") {
+    return (
+      !isKnownEagleDownloadWarning(result.message) ||
+      result.hasSavedItemEvidence
+    );
+  }
+
+  return (
+    isKnownEagleDownloadWarning(result.message) && result.hasSavedItemEvidence
+  );
+}
+
+function isKnownEagleDownloadWarning(message: string | undefined): boolean {
+  return Boolean(message?.includes(KNOWN_EAGLE_DOWNLOAD_WARNING));
+}
+
+function hasSavedItemEvidence(value: unknown): boolean {
+  if (Array.isArray(value)) {
+    return value.some(hasSavedItemEvidence);
+  }
+
+  if (!isRecord(value)) {
+    return false;
+  }
+
+  if (firstString(value.id, value.itemId)) {
+    return true;
+  }
+
+  return hasSavedItemEvidence(value.item);
 }
 
 async function notify(message: string): Promise<void> {
