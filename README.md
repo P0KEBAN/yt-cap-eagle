@@ -2,175 +2,178 @@
 
 # 🎬 yt-cap-eagle
 
-**YouTubeサムネイルをワンキーでEagleに保存するChrome拡張**
+**Save YouTube thumbnails to [Eagle](https://eagle.cool/) with a single keystroke**
 
 [![Chrome Extension](https://img.shields.io/badge/Chrome-Extension-4285F4?style=for-the-badge&logo=googlechrome&logoColor=white)](https://developer.chrome.com/docs/extensions/)
 [![Manifest V3](https://img.shields.io/badge/Manifest-V3-34A853?style=for-the-badge&logo=googlechrome&logoColor=white)](https://developer.chrome.com/docs/extensions/mv3/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.4-3178C6?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![Eagle](https://img.shields.io/badge/Eagle-API%20V1-0AC18E?style=for-the-badge)](https://eagle.cool/)
-[![Version](https://img.shields.io/badge/version-0.1.0-FF6B6B?style=for-the-badge)](#)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow?style=for-the-badge)](LICENSE)
 
 ---
 
-YouTube動画ページを閲覧中に **`⌘⇧Y`** を押すだけで、最高画質のサムネイルをプレビュー＆Eagleに保存できます。
+Press **`⌘⇧Y`** on any YouTube video page to preview and save the highest-quality thumbnail directly to Eagle.
+
+**[🇯🇵 日本語版 README はこちら](README.ja.md)**
 
 </div>
 
 <br>
 
-## ✨ 特徴
+## ✨ Features
 
-| 機能 | 説明 |
-|:---|:---|
-| 🖼️ **高画質サムネイル取得** | `maxresdefault` → `sddefault` → `hqdefault` の順で最適な画質を自動解決 |
-| ⌨️ **キーボードショートカット** | `⌘⇧Y` / `Ctrl+Shift+Y` でプレビューを即表示 |
-| 👁️ **プレビュー付き保存** | 保存前にサムネイルを確認、`Enter` で保存・`Escape` でキャンセル |
-| 📂 **保存先の選択** | `Enter` でデフォルトフォルダ、`⌘Enter` でインボックスに保存 |
-| 🎯 **幅広いURL対応** | 通常の動画ページ、Shorts、`youtu.be` 短縮URLすべてに対応 |
-| 🔧 **設定画面** | 拡張機能の右クリックメニューからEagle API接続先などを設定可能 |
+| | Feature | Description |
+|:---|:---|:---|
+| 🖼️ | **Hi-res thumbnails** | Automatically resolves the best quality: `maxresdefault` → `sddefault` → `hqdefault` |
+| ⌨️ | **Keyboard shortcut** | `⌘⇧Y` / `Ctrl+Shift+Y` to instantly show the preview |
+| 👁️ | **Preview before save** | Confirm the thumbnail, then `Enter` to save or `Escape` to cancel |
+| 📂 | **Flexible destination** | `Enter` for default folder, `⌘Enter` for inbox |
+| 🎯 | **Broad URL support** | Works on regular videos, Shorts, and `youtu.be` short links |
+| 🔧 | **Settings page** | Configure Eagle API connection and default folder via the extension options |
 
 <br>
 
-## 🔧 技術スタック
+## 🔧 Tech Stack
 
 ```
 Chrome Extension (Manifest V3)
-├── TypeScript 5.4          … 型安全な開発
-├── Eagle Web API V1        … サムネイル登録
-├── Chrome Scripting API    … コンテンツスクリプト注入
-├── Chrome Storage API      … 設定の永続化
-└── Chrome Notifications    … 保存完了通知
+├── TypeScript 5.4          … Type-safe development
+├── Eagle Web API V1        … Thumbnail registration
+├── Chrome Scripting API    … Content script injection
+├── Chrome Storage API      … Persistent settings
+└── Chrome Notifications    … Save completion alerts
 ```
 
 <br>
 
-## 🚀 セットアップ
+## 🚀 Setup
 
-### 前提条件
+### Prerequisites
 
-- [Eagle](https://eagle.cool/) がインストール・起動済みであること
-- [Node.js](https://nodejs.org/) がインストール済みであること
-- Google Chrome / Chromium系ブラウザ
+- [Eagle](https://eagle.cool/) installed and running
+- [Node.js](https://nodejs.org/) installed
+- Google Chrome or any Chromium-based browser
 
-### インストール手順
+### Installation
 
 ```bash
-# 1. リポジトリをクローン
+# 1. Clone the repository
 git clone https://github.com/P0KEBAN/yt-cap-eagle.git
 cd yt-cap-eagle
 
-# 2. 依存関係をインストール
+# 2. Install dependencies
 npm install
 
-# 3. TypeScriptをビルド
+# 3. Build TypeScript
 npm run build
 ```
 
-### Chromeへの登録
+### Load into Chrome
 
-1. `chrome://extensions` を開く
-2. **デベロッパーモード** を有効化（右上のトグル）
-3. **「パッケージ化されていない拡張機能を読み込む」** をクリック
-4. クローンしたフォルダを選択
+1. Open `chrome://extensions`
+2. Enable **Developer mode** (toggle in the top-right corner)
+3. Click **"Load unpacked"**
+4. Select the cloned folder
 
 > [!TIP]
-> コードを変更した場合は `npm run build` を実行し、`chrome://extensions` で拡張機能の **更新ボタン** を押してください。
+> After making code changes, run `npm run build` and click the **reload button** on `chrome://extensions`.
 
 <br>
 
-## 📖 使い方
+## 📖 Usage
 
 ```
                 ┌──────────────────────────────┐
-                │    YouTube動画ページを開く      │
+                │   Open a YouTube video page   │
                 └──────────────┬───────────────┘
                                │
                                ▼
                 ┌──────────────────────────────┐
-                │   ⌘⇧Y  or ツールバーボタン     │
+                │   ⌘⇧Y  or  toolbar button    │
                 └──────────────┬───────────────┘
                                │
                                ▼
                 ┌──────────────────────────────┐
-                │   サムネイルプレビューが表示     │
+                │   Thumbnail preview appears   │
                 └──────────────┬───────────────┘
                                │
                     ┌──────────┴──────────┐
                     ▼                     ▼
           ┌─────────────────┐   ┌─────────────────┐
-          │  Enter: 保存     │   │  Escape: 取消   │
-          │  ⌘Enter: 受信箱  │   │                 │
+          │  Enter: Save     │   │  Escape: Cancel │
+          │  ⌘Enter: Inbox   │   │                 │
           └─────────────────┘   └─────────────────┘
 ```
 
-### 初回設定
+### Initial Setup
 
-1. 拡張機能アイコンを **右クリック** →「**オプション**」を選択
-2. Eagle APIの接続先を設定
-3. 「**接続テスト**」ボタンでEagle APIへの接続を確認
+1. **Right-click** the extension icon → select **"Options"**
+2. Configure the Eagle API connection
+3. Click **"Test connection"** to verify
 
 > [!NOTE]
-> ショートカットが動作しない場合は `chrome://extensions/shortcuts` で `yt-cap` のショートカットキーを手動設定してください。Manifestの `suggested_key` はあくまで候補で、Chrome側の状態により自動設定されない場合があります。
+> If the shortcut doesn't work, go to `chrome://extensions/shortcuts` and manually set the shortcut for `yt-cap`. The `suggested_key` in the manifest is only a suggestion and may not be automatically assigned by Chrome.
 
-### デフォルト保存先の変更
+### Changing the Default Save Folder
 
-設定画面の「**デフォルト保存先フォルダID**」を指定すると、サムネイルの保存先フォルダを変更できます。
+You can change the thumbnail save destination by setting the **"Default folder ID"** in the options page.
 
-1. Eagle アプリで保存先にしたいフォルダを **右クリック**
-2. 「**リンクをコピー**」を選択
-3. コピーされたURL（例: `http://localhost:41595/folder?id=XXXXX`）から **`XXXXX` 部分（フォルダID）** をコピー
-4. 設定画面の「デフォルト保存先フォルダID」欄に貼り付けて保存
+1. In the Eagle app, **right-click** the folder you want to save to
+2. Select **"Copy Link"**
+3. From the copied URL (e.g. `http://localhost:41595/folder?id=XXXXX`), copy the **`XXXXX` part (the folder ID)**
+4. Paste it into the "Default folder ID" field in the options page and save
 
 > [!TIP]
-> フォルダIDを空にすると、Eagle側のデフォルトの場所に保存されます。
+> Leave the folder ID empty to save to Eagle's default location.
 
 <br>
 
-## 📁 プロジェクト構成
+## 📁 Project Structure
 
 ```
 yt-cap-eagle/
-├── 📄 manifest.json        … Chrome拡張のマニフェスト (MV3)
-├── 📦 package.json          … npm設定・ビルドスクリプト
-├── ⚙️ tsconfig.json         … TypeScript設定
-├── 🎨 icons/                … 拡張機能アイコン (16/48/128px)
+├── 📄 manifest.json        … Chrome extension manifest (MV3)
+├── 📦 package.json          … npm config & build scripts
+├── ⚙️ tsconfig.json         … TypeScript configuration
+├── 🎨 icons/                … Extension icons (16/48/128px)
 ├── 📂 src/
-│   ├── background.ts       … Service Worker (メインロジック)
-│   ├── content.ts           … コンテンツスクリプト (プレビューUI)
-│   ├── options.html         … 設定画面HTML
-│   ├── options.ts           … 設定画面ロジック
-│   ├── options.css          … 設定画面スタイル
-│   ├── overlay.css          … プレビューオーバーレイスタイル
-│   └── types.ts             … 型定義
-├── 📂 dist/                 … ビルド出力 (生成ファイル)
-└── 📂 docs/                 … 開発メモ・要件定義
+│   ├── background.ts       … Service Worker (main logic)
+│   ├── content.ts           … Content script (preview UI)
+│   ├── i18n.ts              … Internationalization (en/ja)
+│   ├── options.html         … Options page HTML
+│   ├── options.ts           … Options page logic
+│   ├── options.css          … Options page styles
+│   ├── overlay.css          … Preview overlay styles
+│   └── types.ts             … Type definitions
+├── 📂 dist/                 … Build output (generated)
+└── 📂 docs/                 … Dev notes & specs
 ```
 
 <br>
 
-## 🛠️ 開発
+## 🛠️ Development
 
 ```bash
-# 型チェックのみ実行
+# Type-check only
 npm run typecheck
 
-# ビルド
+# Build
 npm run build
 ```
 
 <br>
 
-## ⚠️ 既知の制限事項
+## ⚠️ Known Limitations
 
-- Eagle デスクトップアプリが **起動していない** 場合は保存に失敗します
-- YouTube以外のサイトでは動作しません
-- プライベート動画・年齢制限付き動画はサムネイルが取得できない場合があります
+- Saving will fail if the Eagle desktop app is **not running**
+- Only works on YouTube pages
+- Thumbnails may not be available for private or age-restricted videos
 
 <br>
 
-## 📄 ライセンス
+## 📄 License
 
-Private Project
+This project is licensed under the [MIT License](LICENSE).
 
 <br>
 
@@ -178,7 +181,7 @@ Private Project
 
 <div align="center">
 
-**[⬆ トップへ戻る](#-yt-cap-eagle)**
+**[⬆ Back to top](#-yt-cap-eagle)**
 
 Made with ❤️ for [Eagle](https://eagle.cool/) users
 
