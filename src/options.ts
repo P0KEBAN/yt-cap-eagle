@@ -1,21 +1,27 @@
-type Settings = {
-  eagleHost: string;
-  eaglePort: number;
-  defaultFolderId: string;
-};
+import {
+  getMessages,
+  resolveLocale,
+  type Locale,
+  type Messages,
+} from "./i18n.js";
+import type { LanguageSetting, Settings } from "./types";
 
 const DEFAULT_SETTINGS: Settings = {
   eagleHost: "localhost",
   eaglePort: 41595,
   defaultFolderId: "",
+  language: "auto",
 };
 
 const form = requireElement<HTMLFormElement>("#settings-form");
 const hostInput = requireElement<HTMLInputElement>("#eagle-host");
 const portInput = requireElement<HTMLInputElement>("#eagle-port");
 const folderInput = requireElement<HTMLInputElement>("#default-folder-id");
+const languageSelect = requireElement<HTMLSelectElement>("#language");
 const testButton = requireElement<HTMLButtonElement>("#test-connection");
 const statusElement = requireElement<HTMLElement>("#status");
+
+let messages: Messages = getMessages("en");
 
 void initialize();
 
@@ -24,6 +30,9 @@ async function initialize(): Promise<void> {
   hostInput.value = settings.eagleHost;
   portInput.value = String(settings.eaglePort);
   folderInput.value = settings.defaultFolderId;
+  languageSelect.value = settings.language;
+
+  applyLanguage(settings.language);
 
   form.addEventListener("submit", (event) => {
     event.preventDefault();
@@ -33,6 +42,37 @@ async function initialize(): Promise<void> {
   testButton.addEventListener("click", () => {
     void testConnection();
   });
+
+  // 言語の選択を変えたら即座に画面表示へ反映する（保存前のプレビュー）。
+  languageSelect.addEventListener("change", () => {
+    applyLanguage(languageSelect.value as LanguageSetting);
+  });
+}
+
+function applyLanguage(setting: LanguageSetting): void {
+  const locale = resolveLocale(setting, navigator.language);
+  messages = getMessages(locale);
+  translateDocument(locale);
+}
+
+function translateDocument(locale: Locale): void {
+  const m = getMessages(locale);
+
+  document.documentElement.lang = locale;
+
+  const elements = Array.from(
+    document.querySelectorAll<HTMLElement>("[data-i18n]"),
+  );
+
+  for (const element of elements) {
+    const key = element.dataset.i18n as keyof Messages | undefined;
+
+    if (key && key in m) {
+      element.textContent = m[key];
+    }
+  }
+
+  document.title = m.pageTitle;
 }
 
 async function loadSettings(): Promise<Settings> {
@@ -48,18 +88,20 @@ async function loadSettings(): Promise<Settings> {
       typeof saved.defaultFolderId === "string"
         ? saved.defaultFolderId
         : DEFAULT_SETTINGS.defaultFolderId,
+    language: normalizeLanguage(saved.language),
   };
 }
 
 async function saveSettings(): Promise<void> {
   const settings = readFormSettings();
   await chrome.storage.sync.set(settings);
-  setStatus("保存しました", "success");
+  applyLanguage(settings.language);
+  setStatus(messages.saved, "success");
 }
 
 async function testConnection(): Promise<void> {
   const settings = readFormSettings();
-  setStatus("接続確認中...");
+  setStatus(messages.testing);
 
   try {
     const response = await fetch(
@@ -70,9 +112,9 @@ async function testConnection(): Promise<void> {
       throw new Error(`HTTP ${response.status}`);
     }
 
-    setStatus("Eagle APIに接続できました", "success");
+    setStatus(messages.connectOk, "success");
   } catch {
-    setStatus("Eagle APIに接続できません", "error");
+    setStatus(messages.connectFail, "error");
   }
 }
 
@@ -81,6 +123,7 @@ function readFormSettings(): Settings {
     eagleHost: normalizeHost(hostInput.value),
     eaglePort: normalizePort(portInput.value),
     defaultFolderId: folderInput.value.trim(),
+    language: normalizeLanguage(languageSelect.value),
   };
 }
 
@@ -104,6 +147,12 @@ function normalizePort(value: unknown): number {
   }
 
   return DEFAULT_SETTINGS.eaglePort;
+}
+
+function normalizeLanguage(value: unknown): LanguageSetting {
+  return value === "en" || value === "ja" || value === "auto"
+    ? value
+    : DEFAULT_SETTINGS.language;
 }
 
 function setStatus(

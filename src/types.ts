@@ -22,10 +22,13 @@ export type SaveThumbnailResponse =
       error: string;
     };
 
+export type LanguageSetting = "auto" | "en" | "ja";
+
 export type Settings = {
   eagleHost: string;
   eaglePort: number;
   defaultFolderId: string;
+  language: LanguageSetting;
 };
 
 export type SaveRequest = VideoMetadata & {

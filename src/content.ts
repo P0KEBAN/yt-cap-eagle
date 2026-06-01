@@ -28,6 +28,32 @@
         error: string;
       };
 
+  // このスクリプトは executeScript で通常スクリプトとして注入されるため import が使えない。
+  // src/i18n.ts と文言を同期させること（ここはオーバーレイで使う最小限のみ）。
+  type Locale = "en" | "ja";
+  type LanguageSetting = "auto" | "en" | "ja";
+
+  const MESSAGES: Record<Locale, Record<string, string>> = {
+    en: {
+      unsupportedPage: "This page is not supported",
+      loading: "Loading...",
+      thumbnailLoading: "Thumbnail is still loading",
+      saving: "Saving...",
+      saved: "Saved",
+      saveHint: "Enter to save / Cmd+Enter for inbox",
+      thumbnailFailed: "Could not fetch the thumbnail",
+    },
+    ja: {
+      unsupportedPage: "このページは対応していません",
+      loading: "読み込み中...",
+      thumbnailLoading: "サムネイルを読み込み中です",
+      saving: "保存中...",
+      saved: "保存しました",
+      saveHint: "Enterで保存 / Cmd+Enterでインボックス",
+      thumbnailFailed: "サムネイルを取得できませんでした",
+    },
+  };
+
   const YOUTUBE_WATCH_HOSTS = new Set([
     "www.youtube.com",
     "youtube.com",
@@ -40,9 +66,36 @@
     "hqdefault",
   ] as const;
 
-  void showThumbnailOverlay();
+  void (async () => {
+    const locale = await resolveContentLocale();
+    showThumbnailOverlay(MESSAGES[locale]);
+  })();
 
-  function showThumbnailOverlay(): void {
+  async function resolveContentLocale(): Promise<Locale> {
+    let setting: LanguageSetting = "auto";
+
+    try {
+      const saved = await chrome.storage.sync.get({ language: "auto" });
+
+      if (
+        saved.language === "en" ||
+        saved.language === "ja" ||
+        saved.language === "auto"
+      ) {
+        setting = saved.language;
+      }
+    } catch {
+      // 設定が読めない場合は auto 扱いのままにする。
+    }
+
+    if (setting === "en" || setting === "ja") {
+      return setting;
+    }
+
+    return navigator.language.toLowerCase().startsWith("ja") ? "ja" : "en";
+  }
+
+  function showThumbnailOverlay(m: Record<string, string>): void {
     const existing = document.getElementById(OVERLAY_ID);
 
     if (existing) {
@@ -54,10 +107,8 @@
 
     try {
       metadata = collectVideoMetadata(window.location.href);
-    } catch (error) {
-      window.alert(
-        error instanceof Error ? error.message : "このページは対応していません",
-      );
+    } catch {
+      window.alert(m.unsupportedPage);
       return;
     }
 
@@ -81,7 +132,7 @@
 
     const status = document.createElement("div");
     status.className = "yt-cap-status";
-    status.textContent = "読み込み中...";
+    status.textContent = m.loading;
 
     panel.append(image, status);
     overlay.append(panel);
@@ -108,12 +159,12 @@
       }
 
       if (!state.loadedThumbnailUrl) {
-        setStatus("サムネイルを読み込み中です", "error");
+        setStatus(m.thumbnailLoading, "error");
         return;
       }
 
       state.saving = true;
-      setStatus("保存中...");
+      setStatus(m.saving);
 
       const response = await sendSaveMessage({
         ...metadata,
@@ -128,7 +179,7 @@
         return;
       }
 
-      setStatus("保存しました", "success");
+      setStatus(m.saved, "success");
       window.setTimeout(cleanup, 700);
     };
 
@@ -137,7 +188,7 @@
 
       if (state.qualityIndex >= THUMBNAIL_QUALITIES.length) {
         state.loadedThumbnailUrl = "";
-        setStatus("サムネイルを取得できませんでした", "error");
+        setStatus(m.thumbnailFailed, "error");
         return;
       }
 
@@ -170,7 +221,7 @@
 
     image.addEventListener("load", () => {
       state.loadedThumbnailUrl = image.currentSrc || image.src;
-      setStatus("Enterで保存 / Cmd+Enterでインボックス");
+      setStatus(m.saveHint);
     });
     image.addEventListener("error", tryNextThumbnail);
     document.addEventListener("keydown", onKeyDown, true);

@@ -1,4 +1,11 @@
+import {
+  getMessages,
+  resolveLocale,
+  type Locale,
+  type Messages,
+} from "./i18n.js";
 import type {
+  LanguageSetting,
   SaveRequest,
   SaveThumbnailMessage,
   SaveThumbnailResponse,
@@ -9,6 +16,7 @@ const DEFAULT_SETTINGS: Settings = {
   eagleHost: "localhost",
   eaglePort: 41595,
   defaultFolderId: "",
+  language: "auto",
 };
 
 const THUMBNAIL_QUALITIES = [
@@ -39,20 +47,27 @@ chrome.runtime.onMessage.addListener(
       return false;
     }
 
-    void saveThumbnail(message.payload)
-      .then((thumbnailUrl) => {
-        sendResponse({ ok: true, thumbnailUrl });
-      })
-      .catch((error) => {
-        sendResponse({
-          ok: false,
-          error: toUserFacingError(error),
+    void currentLocale().then((locale) => {
+      void saveThumbnail(message.payload, locale)
+        .then((thumbnailUrl) => {
+          sendResponse({ ok: true, thumbnailUrl });
+        })
+        .catch((error) => {
+          sendResponse({
+            ok: false,
+            error: toUserFacingError(error, locale),
+          });
         });
-      });
+    });
 
     return true;
   },
 );
+
+async function currentLocale(): Promise<Locale> {
+  const settings = await loadSettings();
+  return resolveLocale(settings.language, chrome.i18n.getUILanguage());
+}
 
 async function runOnActiveTab(): Promise<void> {
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
@@ -62,8 +77,10 @@ async function runOnActiveTab(): Promise<void> {
 async function injectContentScript(
   tab: chrome.tabs.Tab | undefined,
 ): Promise<void> {
+  const m = getMessages(await currentLocale());
+
   if (!tab?.id || !isInjectablePage(tab.url)) {
-    await notify("このページは対応していません");
+    await notify(m.unsupportedPage);
     return;
   }
 
@@ -77,7 +94,7 @@ async function injectContentScript(
       files: ["dist/content.js"],
     });
   } catch {
-    await notify("このページでは実行できません");
+    await notify(m.cannotRunHere);
   }
 }
 
@@ -87,33 +104,37 @@ function isInjectablePage(rawUrl: string | undefined): boolean {
   );
 }
 
-async function saveThumbnail(request: SaveRequest): Promise<string> {
+async function saveThumbnail(
+  request: SaveRequest,
+  locale: Locale,
+): Promise<string> {
   const settings = await loadSettings();
+  const m = getMessages(locale);
   const baseUrl = `http://${settings.eagleHost}:${settings.eaglePort}`;
 
-  await assertEagleIsRunning(baseUrl);
+  await assertEagleIsRunning(baseUrl, m);
 
   const thumbnailUrl =
-    request.thumbnailUrl || (await resolveThumbnailUrl(request.videoId));
+    request.thumbnailUrl || (await resolveThumbnailUrl(request.videoId, m));
   const folderId =
     request.targetFolder === "default" ? settings.defaultFolderId : "";
-  const body = buildAddFromUrlBody(request, thumbnailUrl, folderId);
+  const body = buildAddFromUrlBody(request, thumbnailUrl, folderId, m);
   const response = await fetch(`${baseUrl}/api/item/addFromURL`, {
     method: "POST",
     body: JSON.stringify(body),
   });
 
   if (!response.ok) {
-    throw new Error(`Eagle APIに接続できません (${response.status})`);
+    throw new Error(`${m.cannotConnectEagle} (${response.status})`);
   }
 
   const result = await parseEagleResponse(response);
 
   if (result.status !== "success") {
-    throw new Error(result.message || "Eagleへの保存に失敗しました");
+    throw new Error(result.message || m.saveToEagleFailed);
   }
 
-  await notify("サムネイルをEagleに保存しました");
+  await notify(m.savedToEagle);
   return thumbnailUrl;
 }
 
@@ -127,7 +148,14 @@ async function loadSettings(): Promise<Settings> {
       typeof saved.defaultFolderId === "string"
         ? saved.defaultFolderId.trim()
         : "",
+    language: normalizeLanguage(saved.language),
   };
+}
+
+function normalizeLanguage(value: unknown): LanguageSetting {
+  return value === "en" || value === "ja" || value === "auto"
+    ? value
+    : DEFAULT_SETTINGS.language;
 }
 
 function normalizeHost(value: unknown): string {
@@ -157,7 +185,10 @@ function normalizePort(value: unknown): number {
   return DEFAULT_SETTINGS.eaglePort;
 }
 
-async function assertEagleIsRunning(baseUrl: string): Promise<void> {
+async function assertEagleIsRunning(
+  baseUrl: string,
+  m: Messages,
+): Promise<void> {
   try {
     const response = await fetch(`${baseUrl}/api/application/info`);
 
@@ -165,11 +196,14 @@ async function assertEagleIsRunning(baseUrl: string): Promise<void> {
       throw new Error(`Eagle API responded with ${response.status}`);
     }
   } catch {
-    throw new Error("Eagleが起動していません");
+    throw new Error(m.eagleNotRunning);
   }
 }
 
-async function resolveThumbnailUrl(videoId: string): Promise<string> {
+async function resolveThumbnailUrl(
+  videoId: string,
+  m: Messages,
+): Promise<string> {
   for (const quality of THUMBNAIL_QUALITIES) {
     const url = `https://img.youtube.com/vi/${videoId}/${quality}.jpg`;
 
@@ -178,7 +212,7 @@ async function resolveThumbnailUrl(videoId: string): Promise<string> {
     }
   }
 
-  throw new Error("サムネイルを取得できませんでした");
+  throw new Error(m.thumbnailFailed);
 }
 
 async function imageExists(url: string): Promise<boolean> {
@@ -200,16 +234,17 @@ function buildAddFromUrlBody(
   metadata: SaveRequest,
   thumbnailUrl: string,
   defaultFolderId: string,
+  m: Messages,
 ): Record<string, unknown> {
   const body: Record<string, unknown> = {
     url: thumbnailUrl,
     name: metadata.title || "YouTube thumbnail",
     website: metadata.url,
     annotation: [
-      `チャンネル: ${metadata.channelName || ""}`,
-      `投稿日: ${metadata.uploadDate || ""}`,
-      `動画ID: ${metadata.videoId}`,
-      `取得日時: ${metadata.capturedAt}`,
+      `${m.annotationChannel}: ${metadata.channelName || ""}`,
+      `${m.annotationUploaded}: ${metadata.uploadDate || ""}`,
+      `${m.annotationVideoId}: ${metadata.videoId}`,
+      `${m.annotationCapturedAt}: ${metadata.capturedAt}`,
     ].join("\n"),
   };
 
@@ -251,12 +286,12 @@ async function notify(message: string): Promise<void> {
   }
 }
 
-function toUserFacingError(error: unknown): string {
+function toUserFacingError(error: unknown, locale: Locale): string {
   if (error instanceof Error && error.message) {
     return error.message;
   }
 
-  return "サムネイル保存に失敗しました";
+  return getMessages(locale).saveFailed;
 }
 
 function extractEagleMessage(
