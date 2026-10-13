@@ -1,0 +1,14 @@
+{
+  "extDescription": {
+    "message": "Preview the current YouTube video's thumbnail and save it to Eagle.",
+    "description": "Extension description shown on chrome://extensions."
+  },
+  "actionTitle": {
+    "message": "Preview thumbnail and save to Eagle",
+    "description": "Tooltip of the toolbar button."
+  },
+  "commandDescription": {
+    "message": "Preview and save the YouTube thumbnail to Eagle",
+    "description": "Label of the command on chrome://extensions/shortcuts."
+  }
+}

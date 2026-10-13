@@ -1,8 +1,9 @@
 {
   "manifest_version": 3,
   "name": "yt-cap for Eagle",
-  "version": "0.2.0",
-  "description": "Save the current YouTube video's thumbnail to Eagle.",
+  "version": "0.2.1",
+  "description": "__MSG_extDescription__",
+  "default_locale": "en",
   "permissions": ["activeTab", "scripting", "storage", "notifications"],
   "host_permissions": [
     "http://localhost/*",
@@ -25,7 +26,7 @@
     "128": "icons/icon-128.png"
   },
   "action": {
-    "default_title": "Show thumbnail preview",
+    "default_title": "__MSG_actionTitle__",
     "default_icon": {
       "16": "icons/icon-16.png",
       "48": "icons/icon-48.png",
@@ -38,7 +39,7 @@
         "default": "Ctrl+Shift+Y",
         "mac": "Command+Shift+Y"
       },
-      "description": "Save YouTube thumbnail to Eagle"
+      "description": "__MSG_commandDescription__"
     }
   }
 }

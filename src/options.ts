@@ -99,7 +99,7 @@ function renderShortcut(): void {
 }
 
 function applyLanguage(setting: LanguageSetting): void {
-  const locale = resolveLocale(setting, navigator.language);
+  const locale = resolveLocale(setting, chrome.i18n.getUILanguage());
   messages = getMessages(locale);
   translateDocument(locale);
   renderShortcut();

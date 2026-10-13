@@ -96,7 +96,9 @@
       return setting;
     }
 
-    return navigator.language.toLowerCase().startsWith("ja") ? "ja" : "en";
+    return chrome.i18n.getUILanguage().toLowerCase().startsWith("ja")
+      ? "ja"
+      : "en";
   }
 
   function showThumbnailOverlay(m: Record<string, string>): void {

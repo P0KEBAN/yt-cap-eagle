@@ -152,6 +152,7 @@ yt-cap-eagle/
 ├── 📄 manifest.json        … Chrome extension manifest (MV3)
 ├── 📦 package.json          … npm config & build scripts
 ├── ⚙️ tsconfig.json         … TypeScript configuration
+├── 🌐 _locales/             … Description shown in the extensions list (en/ja)
 ├── 🎨 icons/                … Extension icons (16/48/128px)
 ├── 📂 scripts/
 │   └── package.sh          … Builds the distributable zip
@@ -159,7 +160,7 @@ yt-cap-eagle/
 │   ├── background.ts       … Service Worker (main logic)
 │   ├── content.ts           … Content script (preview UI)
 │   ├── folderId.ts          … Folder ID extraction from links
-│   ├── i18n.ts              … Internationalization (en/ja)
+│   ├── i18n.ts              … UI strings (en/ja)
 │   ├── options.html         … Options page HTML
 │   ├── options.ts           … Options page logic
 │   ├── options.css          … Options page styles

@@ -1,0 +1,14 @@
+{
+  "extDescription": {
+    "message": "YouTube動画のサムネイルをプレビューして、Eagleに保存します。",
+    "description": "Extension description shown on chrome://extensions."
+  },
+  "actionTitle": {
+    "message": "サムネイルをプレビューしてEagleに保存",
+    "description": "Tooltip of the toolbar button."
+  },
+  "commandDescription": {
+    "message": "YouTubeのサムネイルをプレビューしてEagleに保存",
+    "description": "Label of the command on chrome://extensions/shortcuts."
+  }
+}

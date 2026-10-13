@@ -152,6 +152,7 @@ yt-cap-eagle/
 ├── 📄 manifest.json        … Chrome拡張のマニフェスト (MV3)
 ├── 📦 package.json          … npm設定・ビルドスクリプト
 ├── ⚙️ tsconfig.json         … TypeScript設定
+├── 🌐 _locales/             … 拡張機能一覧に出る説明文 (en/ja)
 ├── 🎨 icons/                … 拡張機能アイコン (16/48/128px)
 ├── 📂 scripts/
 │   └── package.sh          … 配布用zipの作成
@@ -159,7 +160,7 @@ yt-cap-eagle/
 │   ├── background.ts       … Service Worker (メインロジック)
 │   ├── content.ts           … コンテンツスクリプト (プレビューUI)
 │   ├── folderId.ts          … フォルダリンクからのID取り出し
-│   ├── i18n.ts              … 国際化 (en/ja)
+│   ├── i18n.ts              … 画面表示の文言 (en/ja)
 │   ├── options.html         … 設定画面HTML
 │   ├── options.ts           … 設定画面ロジック
 │   ├── options.css          … 設定画面スタイル
