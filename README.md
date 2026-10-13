@@ -145,8 +145,7 @@ yt-cap-eagle/
 │   ├── options.css          … Options page styles
 │   ├── overlay.css          … Preview overlay styles
 │   └── types.ts             … Type definitions
-├── 📂 dist/                 … Build output (generated)
-└── 📂 docs/                 … Dev notes & specs
+└── 📂 dist/                 … Build output (generated)
 ```
 
 <br>
