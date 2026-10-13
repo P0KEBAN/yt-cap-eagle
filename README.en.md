@@ -53,13 +53,20 @@ Chrome Extension (Manifest V3)
 
 ## 🚀 Setup
 
-### Prerequisites
+Works on Google Chrome and other Chromium-based browsers. [Eagle](https://eagle.cool/) must be installed and running, since that is where thumbnails are saved. There are two ways to install.
 
-- [Eagle](https://eagle.cool/) installed and running
-- [Node.js](https://nodejs.org/) installed
-- Google Chrome or any Chromium-based browser
+### A. Download the zip (easy)
 
-### Installation
+1. Download `yt-cap-eagle-vX.Y.Z.zip` from [Releases](https://github.com/P0KEBAN/yt-cap-eagle/releases/latest)
+2. Unzip it (you get a `yt-cap-eagle` folder)
+3. Continue to "[Load into Chrome](#load-into-chrome)" below and select the unzipped `yt-cap-eagle` folder
+
+> [!IMPORTANT]
+> Chrome keeps loading the extension from the folder you select. Put the unzipped `yt-cap-eagle` folder somewhere you won't delete or move it.
+
+### B. Build from source
+
+Requires [Node.js](https://nodejs.org/).
 
 ```bash
 # 1. Clone the repository
@@ -78,7 +85,8 @@ npm run build
 1. Open `chrome://extensions`
 2. Enable **Developer mode** (toggle in the top-right corner)
 3. Click **"Load unpacked"**
-4. Select the cloned folder
+4. Select the `yt-cap-eagle` folder (the unzipped folder, or the cloned folder)
+5. Then continue with "[Initial Setup](#initial-setup)" below
 
 > [!TIP]
 > After making code changes, run `npm run build` and click the **reload button** on `chrome://extensions`.
@@ -120,7 +128,7 @@ npm run build
 > [!NOTE]
 > The extension requests `⌘⇧Y` (`Ctrl+Shift+Y` on Windows/Linux) as a suggestion, but **it may not be assigned automatically** (for example, when another extension or Chrome itself already uses that key). If nothing happens when you press the shortcut, assign it from the **"Set shortcut"** button on the options page, or from `chrome://extensions/shortcuts`.
 >
-> Even without a shortcut, you can use yt-cap by clicking its icon in the toolbar.
+> Even without a shortcut, you can use yt-cap for Eagle by clicking its icon in the toolbar.
 
 ### Changing the Default Save Folder
 
@@ -145,6 +153,8 @@ yt-cap-eagle/
 ├── 📦 package.json          … npm config & build scripts
 ├── ⚙️ tsconfig.json         … TypeScript configuration
 ├── 🎨 icons/                … Extension icons (16/48/128px)
+├── 📂 scripts/
+│   └── package.sh          … Builds the distributable zip
 ├── 📂 src/
 │   ├── background.ts       … Service Worker (main logic)
 │   ├── content.ts           … Content script (preview UI)
@@ -168,6 +178,9 @@ npm run typecheck
 
 # Build
 npm run build
+
+# Create the distributable zip in release/ (also builds)
+npm run package
 ```
 
 <br>

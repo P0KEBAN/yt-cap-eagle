@@ -53,13 +53,20 @@ Chrome Extension (Manifest V3)
 
 ## 🚀 セットアップ
 
-### 前提条件
+Google Chrome または Chromium系ブラウザで使えます。保存先として [Eagle](https://eagle.cool/) がインストール・起動済みである必要があります。入れ方は2通りあります。
 
-- [Eagle](https://eagle.cool/) がインストール・起動済みであること
-- [Node.js](https://nodejs.org/) がインストール済みであること
-- Google Chrome / Chromium系ブラウザ
+### A. zipをダウンロードして使う（かんたん）
 
-### インストール手順
+1. [Releases](https://github.com/P0KEBAN/yt-cap-eagle/releases/latest) から `yt-cap-eagle-vX.Y.Z.zip` をダウンロードする
+2. zipを展開する（`yt-cap-eagle` フォルダができます）
+3. 下の「[Chromeへの登録](#chromeへの登録)」に進み、展開した `yt-cap-eagle` フォルダを選ぶ
+
+> [!IMPORTANT]
+> Chromeは選んだフォルダをその場所から読み込み続けます。展開した `yt-cap-eagle` フォルダは、消したり移動したりしない場所に置いてください。
+
+### B. ソースコードからビルドする
+
+[Node.js](https://nodejs.org/) が必要です。
 
 ```bash
 # 1. リポジトリをクローン
@@ -78,7 +85,8 @@ npm run build
 1. `chrome://extensions` を開く
 2. **デベロッパーモード** を有効化（右上のトグル）
 3. **「パッケージ化されていない拡張機能を読み込む」** をクリック
-4. クローンしたフォルダを選択
+4. `yt-cap-eagle` フォルダ（zipを展開したフォルダ、またはクローンしたフォルダ）を選択
+5. 続けて、下の「[初回設定](#初回設定)」を行う
 
 > [!TIP]
 > コードを変更した場合は `npm run build` を実行し、`chrome://extensions` で拡張機能の **更新ボタン** を押してください。
@@ -120,7 +128,7 @@ npm run build
 > [!NOTE]
 > 拡張機能は `⌘⇧Y`（Windows/Linuxは `Ctrl+Shift+Y`）を候補として申請していますが、**自動では割り当てられないことがあります**（ほかの拡張機能やChrome自体が同じキーを使っている場合など）。ショートカットを押しても何も起きないときは、設定画面の **「ショートカットを設定」** ボタン、または `chrome://extensions/shortcuts` から割り当ててください。
 >
-> ショートカットを設定しなくても、ツールバーの yt-cap アイコンをクリックすれば同じように使えます。
+> ショートカットを設定しなくても、ツールバーの yt-cap for Eagle アイコンをクリックすれば同じように使えます。
 
 ### デフォルト保存先の変更
 
@@ -145,6 +153,8 @@ yt-cap-eagle/
 ├── 📦 package.json          … npm設定・ビルドスクリプト
 ├── ⚙️ tsconfig.json         … TypeScript設定
 ├── 🎨 icons/                … 拡張機能アイコン (16/48/128px)
+├── 📂 scripts/
+│   └── package.sh          … 配布用zipの作成
 ├── 📂 src/
 │   ├── background.ts       … Service Worker (メインロジック)
 │   ├── content.ts           … コンテンツスクリプト (プレビューUI)
@@ -168,6 +178,9 @@ npm run typecheck
 
 # ビルド
 npm run build
+
+# 配布用zipを release/ に作成（ビルドも行う）
+npm run package
 ```
 
 <br>

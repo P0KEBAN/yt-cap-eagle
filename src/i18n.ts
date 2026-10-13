@@ -45,12 +45,12 @@ export type Messages = {
 
 export const MESSAGES: Record<Locale, Messages> = {
   en: {
-    pageTitle: "yt-cap Settings",
+    pageTitle: "yt-cap for Eagle Settings",
     shortcut: "Keyboard shortcut",
     shortcutNotSet: "Not set",
     shortcutChange: "Set shortcut",
     shortcutHint:
-      "Shortcut keys are changed in the browser's settings. Even without a shortcut, you can use yt-cap by clicking its icon in the toolbar.",
+      "Shortcut keys are changed in the browser's settings. Even without a shortcut, you can use yt-cap for Eagle by clicking its icon in the toolbar.",
     eagleHost: "Eagle API host",
     eaglePort: "Eagle API port",
     defaultFolderId: "Default folder (link or ID)",
@@ -83,12 +83,12 @@ export const MESSAGES: Record<Locale, Messages> = {
     annotationCapturedAt: "Captured",
   },
   ja: {
-    pageTitle: "yt-cap 設定",
+    pageTitle: "yt-cap for Eagle 設定",
     shortcut: "ショートカットキー",
     shortcutNotSet: "未設定",
     shortcutChange: "ショートカットを設定",
     shortcutHint:
-      "ショートカットキーはブラウザの設定画面で変更します。未設定でも、ツールバーの yt-cap アイコンをクリックすれば同じように使えます。",
+      "ショートカットキーはブラウザの設定画面で変更します。未設定でも、ツールバーの yt-cap for Eagle アイコンをクリックすれば同じように使えます。",
     eagleHost: "Eagle APIホスト",
     eaglePort: "Eagle APIポート",
     defaultFolderId: "デフォルト保存先フォルダ（リンクまたはID）",

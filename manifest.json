@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
-  "name": "yt-cap",
-  "version": "0.1.0",
+  "name": "yt-cap for Eagle",
+  "version": "0.2.0",
   "description": "Save the current YouTube video's thumbnail to Eagle.",
   "permissions": ["activeTab", "scripting", "storage", "notifications"],
   "host_permissions": [

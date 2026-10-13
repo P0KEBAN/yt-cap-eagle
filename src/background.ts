@@ -335,7 +335,7 @@ async function notify(message: string): Promise<void> {
     await chrome.notifications.create({
       type: "basic",
       iconUrl: chrome.runtime.getURL("icons/icon-128.png"),
-      title: "yt-cap",
+      title: "yt-cap for Eagle",
       message,
     });
   } catch (error) {
