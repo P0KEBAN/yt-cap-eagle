@@ -10,36 +10,24 @@
     <main class="page">
       <h1 data-i18n="pageTitle">yt-cap Settings</h1>
 
-      <form id="settings-form" class="settings-form">
-        <label>
-          <span data-i18n="eagleHost">Eagle API host</span>
-          <input id="eagle-host" name="eagleHost" autocomplete="off" />
-        </label>
+      <section class="settings-form shortcut-card">
+        <div class="field">
+          <span class="field-label" data-i18n="shortcut">Keyboard shortcut</span>
+          <div class="shortcut-row">
+            <output id="shortcut-value" class="shortcut-value"></output>
+            <button id="open-shortcuts" type="button" data-i18n="shortcutChange">
+              Set shortcut
+            </button>
+          </div>
+        </div>
 
-        <label>
-          <span data-i18n="eaglePort">Eagle API port</span>
-          <input
-            id="eagle-port"
-            name="eaglePort"
-            inputmode="numeric"
-            autocomplete="off"
-          />
-        </label>
-
-        <label>
-          <span data-i18n="defaultFolderId">Default folder ID</span>
-          <input
-            id="default-folder-id"
-            name="defaultFolderId"
-            autocomplete="off"
-          />
-        </label>
-
-        <p class="hint" data-i18n="folderHint">
-          Right-click a folder in Eagle, copy its ID, and paste it here. If left
-          empty, saving with Enter also goes to the inbox.
+        <p class="hint" data-i18n="shortcutHint">
+          Shortcut keys are changed in the browser's settings. Even without a
+          shortcut, you can use yt-cap by clicking its icon in the toolbar.
         </p>
+      </section>
 
+      <form id="settings-form" class="settings-form">
         <label>
           <span data-i18n="language">Language</span>
           <select id="language" name="language">
@@ -50,6 +38,44 @@
             <option value="ja">日本語</option>
           </select>
         </label>
+
+        <label>
+          <span data-i18n="eagleHost">Eagle API host</span>
+          <input
+            id="eagle-host"
+            name="eagleHost"
+            type="text"
+            autocomplete="off"
+            spellcheck="false"
+          />
+        </label>
+
+        <label>
+          <span data-i18n="eaglePort">Eagle API port</span>
+          <input
+            id="eagle-port"
+            name="eaglePort"
+            type="text"
+            inputmode="numeric"
+            autocomplete="off"
+          />
+        </label>
+
+        <label>
+          <span data-i18n="defaultFolderId">Default folder ID</span>
+          <input
+            id="default-folder-id"
+            name="defaultFolderId"
+            type="text"
+            autocomplete="off"
+            spellcheck="false"
+          />
+        </label>
+
+        <p class="hint" data-i18n="folderHint">
+          Right-click a folder in Eagle, copy its ID, and paste it here. If left
+          empty, saving with Enter also goes to the inbox.
+        </p>
 
         <div class="actions">
           <button type="submit" data-i18n="save">Save</button>
