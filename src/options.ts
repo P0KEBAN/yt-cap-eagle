@@ -4,6 +4,7 @@ import {
   type Locale,
   type Messages,
 } from "./i18n.js";
+import { normalizeFolderId } from "./folderId.js";
 import type { LanguageSetting, Settings } from "./types";
 
 const DEFAULT_SETTINGS: Settings = {
@@ -55,6 +56,11 @@ async function initialize(): Promise<void> {
   // 言語の選択を変えたら即座に画面表示へ反映する（保存前のプレビュー）。
   languageSelect.addEventListener("change", () => {
     applyLanguage(languageSelect.value as LanguageSetting);
+  });
+
+  // Eagle の「リンクをコピー」を貼り付けたら、その場でフォルダIDだけに置き換える。
+  folderInput.addEventListener("change", () => {
+    folderInput.value = normalizeFolderId(folderInput.value);
   });
 
   openShortcutsButton.addEventListener("click", () => {
@@ -125,10 +131,7 @@ async function loadSettings(): Promise<Settings> {
   return {
     eagleHost: normalizeHost(saved.eagleHost),
     eaglePort: normalizePort(saved.eaglePort),
-    defaultFolderId:
-      typeof saved.defaultFolderId === "string"
-        ? saved.defaultFolderId
-        : DEFAULT_SETTINGS.defaultFolderId,
+    defaultFolderId: normalizeFolderId(saved.defaultFolderId),
     language: normalizeLanguage(saved.language),
   };
 }
@@ -175,7 +178,7 @@ function readFormSettings(): Settings {
   return {
     eagleHost: normalizeHost(hostInput.value),
     eaglePort: normalizePort(portInput.value),
-    defaultFolderId: folderInput.value.trim(),
+    defaultFolderId: normalizeFolderId(folderInput.value),
     language: normalizeLanguage(languageSelect.value),
   };
 }

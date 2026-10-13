@@ -4,6 +4,7 @@ import {
   type Locale,
   type Messages,
 } from "./i18n.js";
+import { normalizeFolderId } from "./folderId.js";
 import type {
   LanguageSetting,
   SaveRequest,
@@ -157,7 +158,7 @@ async function loadSettings(): Promise<Settings> {
     eaglePort: normalizePort(saved.eaglePort),
     defaultFolderId:
       typeof saved.defaultFolderId === "string"
-        ? saved.defaultFolderId.trim()
+        ? normalizeFolderId(saved.defaultFolderId)
         : "",
     language: normalizeLanguage(saved.language),
   };

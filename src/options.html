@@ -62,19 +62,22 @@
         </label>
 
         <label>
-          <span data-i18n="defaultFolderId">Default folder ID</span>
+          <span data-i18n="defaultFolderId">Default folder (link or ID)</span>
           <input
             id="default-folder-id"
             name="defaultFolderId"
             type="text"
+            placeholder="http://localhost:41595/folder?id=..."
             autocomplete="off"
             spellcheck="false"
           />
         </label>
 
         <p class="hint" data-i18n="folderHint">
-          Right-click a folder in Eagle, copy its ID, and paste it here. If left
-          empty, saving with Enter also goes to the inbox.
+          Right-click a folder in Eagle, choose "Copy Link", and paste it here
+          as-is — the folder ID is extracted automatically (entering the ID
+          directly also works). If left empty, saving with Enter also goes to
+          the inbox.
         </p>
 
         <div class="actions">

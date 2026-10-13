@@ -53,9 +53,9 @@ export const MESSAGES: Record<Locale, Messages> = {
       "Shortcut keys are changed in the browser's settings. Even without a shortcut, you can use yt-cap by clicking its icon in the toolbar.",
     eagleHost: "Eagle API host",
     eaglePort: "Eagle API port",
-    defaultFolderId: "Default folder ID",
+    defaultFolderId: "Default folder (link or ID)",
     folderHint:
-      "Right-click a folder in Eagle, copy its ID, and paste it here. If left empty, saving with Enter also goes to the inbox.",
+      "Right-click a folder in Eagle, choose \"Copy Link\", and paste it here as-is — the folder ID is extracted automatically (entering the ID directly also works). If left empty, saving with Enter also goes to the inbox.",
     language: "Language",
     languageAuto: "Auto (follow browser)",
     save: "Save",
@@ -91,9 +91,9 @@ export const MESSAGES: Record<Locale, Messages> = {
       "ショートカットキーはブラウザの設定画面で変更します。未設定でも、ツールバーの yt-cap アイコンをクリックすれば同じように使えます。",
     eagleHost: "Eagle APIホスト",
     eaglePort: "Eagle APIポート",
-    defaultFolderId: "デフォルト保存先フォルダID",
+    defaultFolderId: "デフォルト保存先フォルダ（リンクまたはID）",
     folderHint:
-      "フォルダIDはEagle内でフォルダを右クリックし、IDをコピーして貼り付けます。空欄の場合、Enter保存もインボックスに入ります。",
+      "Eagleで保存先のフォルダを右クリック →「リンクをコピー」を選び、そのまま貼り付けてください。フォルダIDだけを自動で取り出します（IDを直接入力してもOKです）。空欄の場合、Enter保存もインボックスに入ります。",
     language: "言語",
     languageAuto: "自動（ブラウザに合わせる）",
     save: "保存",

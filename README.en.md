@@ -124,15 +124,16 @@ npm run build
 
 ### Changing the Default Save Folder
 
-You can change the thumbnail save destination by setting the **"Default folder ID"** in the options page.
+You can change the thumbnail save destination by setting the **"Default folder"** in the options page.
 
 1. In the Eagle app, **right-click** the folder you want to save to
 2. Select **"Copy Link"**
-3. From the copied URL (e.g. `http://localhost:41595/folder?id=XXXXX`), copy the **`XXXXX` part (the folder ID)**
-4. Paste it into the "Default folder ID" field in the options page and save
+3. Paste it **as-is** into the "Default folder" field in the options page and save
+
+The folder ID (`XXXXX`) is extracted automatically from the pasted link (e.g. `http://localhost:41595/folder?id=XXXXX`). Entering the folder ID directly also works.
 
 > [!TIP]
-> Leave the folder ID empty to save to Eagle's default location.
+> Leave the field empty to save to Eagle's default location.
 
 <br>
 
@@ -147,6 +148,7 @@ yt-cap-eagle/
 ├── 📂 src/
 │   ├── background.ts       … Service Worker (main logic)
 │   ├── content.ts           … Content script (preview UI)
+│   ├── folderId.ts          … Folder ID extraction from links
 │   ├── i18n.ts              … Internationalization (en/ja)
 │   ├── options.html         … Options page HTML
 │   ├── options.ts           … Options page logic
